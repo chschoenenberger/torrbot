@@ -34,17 +34,46 @@ def help_command(update: Update, context: CallbackContext) -> None:
 
 def pirate_search(update, context):
     """Usage /piratesearch n query"""
-    n = int(context.args[0])
-    text = ' '.join(context.args[1:])
+
+    # If first argument is a number use it as number of rows to return. Otherwise return 5 rows.
+    if context.args[0].isnumeric():
+        context.user_data['n'] = int(context.args[0])
+        text = ' '.join(context.args[1:])
+    else:
+        context.user_data['n'] = 10
+        text = ' '.join(context.args)
+    n = context.user_data['n']
+
+    # Scrape piratebay and return n results if there are results.
     results = search_piratebay(text)
     if len(results):
-        context.user_data['query'] = results[:n].to_json()
+        context.user_data['query'] = results.to_json()
 
-        results_str = results[['Name', 'Size', 'Seeders']][:n].to_string(justify='center', max_colwidth=30)
-        results_str = '```' + results_str + '```'
+        results_str = result_to_string(results, n_to=n)
         context.bot.send_message(chat_id=update.effective_chat.id, text=results_str, parse_mode=ParseMode.MARKDOWN)
     else:
         update.message.reply_text('No results found. Please try again.')
+
+
+def more(update, context):
+    """Usage: /more"""
+    n = context.user_data['n']
+    results = pd.read_json(context.user_data.get("query", None))
+
+    if len(results) < n+5:
+        n_to = len(results)
+    else:
+        n_to = n+5
+    results_str = result_to_string(results, n_from=n, n_to=n_to)
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=results_str, parse_mode=ParseMode.MARKDOWN)
+    context.user_data['n'] += 5
+
+
+def result_to_string(result, n_from=0, n_to=5):
+    result_str = result[['Name', 'Size', 'Seeders']][n_from:n_to].to_string(justify='center', max_colwidth=30)
+    result_str = '```' + result_str + '```'
+    return result_str
 
 
 def download(update, context):
@@ -61,8 +90,8 @@ def download(update, context):
             name = query_df.loc[int(idx), 'Name']
             update.message.reply_text(f'Starting download: {name}')
 
-    except:
-        update.message.reply_text('Ooops, something went wrong!')
+    except ValueError:
+        update.message.reply_text('Please use /piratesearch before running the /download command!')
 
 
 def send_to_transmission(link):
@@ -78,9 +107,6 @@ def cancel_torrent():
 
 def main():
     """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
     updater = Updater(token, use_context=True)
 
     # Get the dispatcher to register handlers
@@ -90,13 +116,12 @@ def main():
     dp.add_handler(CommandHandler('help', help_command))
     dp.add_handler(CommandHandler('piratesearch', pirate_search))
     dp.add_handler(CommandHandler('download', download))
+    dp.add_handler(CommandHandler('more', more))
 
     # Start the Bot
     updater.start_polling()
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
+    # Run the bot
     updater.idle()
 
 
