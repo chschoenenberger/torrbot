@@ -1,5 +1,3 @@
-# TODO Possibility to cancel download
-
 import yaml
 import logging
 import pandas as pd
@@ -28,7 +26,14 @@ logger = logging.getLogger(__name__)
 
 def help_command(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+    help_text = """/piratesearch (n) query - Show first n results for query on Piratebay
+    /more - Show 5 more results for Query
+    /download idx - Download torrent with idx from previous piratesearch
+    /listtorrents - List all torrents in Transmission
+    /deletealltorrents - Delete all torrents in Transmission
+    /deletetorrent idx - Delete torrent with idx from previous listtorrent
+    """
+    update.message.reply_text(help_text.replace('    ', ''))
 
 
 def pirate_search(update, context):
@@ -59,10 +64,10 @@ def more(update, context):
     n = context.user_data['n']
     results = pd.read_json(context.user_data.get("query", None))
 
-    if len(results) < n+5:
+    if len(results) < n + 5:
         n_to = len(results)
     else:
-        n_to = n+5
+        n_to = n + 5
     results_str = result_to_string(results, n_from=n, n_to=n_to)
 
     context.bot.send_message(chat_id=update.effective_chat.id, text=results_str, parse_mode=ParseMode.MARKDOWN)
@@ -143,7 +148,7 @@ def delete_torrent(update, context):
     if id_arg in torrent_ids:
         name = c.get_torrent(id_arg).name
         c.remove_torrent(id_arg, delete_data=True)
-        update.message.reply_text(f'Removed torrents {name}')
+        update.message.reply_text(f'Removed torrent {name}')
     else:
         update.message.reply_text(f'Torrent with id {id_arg} not found.')
 
@@ -158,8 +163,8 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler('help', help_command))
     dp.add_handler(CommandHandler('piratesearch', pirate_search))
-    dp.add_handler(CommandHandler('download', download))
     dp.add_handler(CommandHandler('more', more))
+    dp.add_handler(CommandHandler('download', download))
     dp.add_handler(CommandHandler('listtorrents', list_torrents))
     dp.add_handler(CommandHandler('deletealltorrents', delete_all_torrents))
     dp.add_handler(CommandHandler('deletetorrent', delete_torrent))
