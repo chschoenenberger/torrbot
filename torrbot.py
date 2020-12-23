@@ -68,6 +68,9 @@ def more(update, context):
     """Usage: /more
     Show 5 more results for previous piratesearch.
     """
+    if not context.user_data.get('n', False):
+        update.message.reply_text('Please run /piratesearch with a query before running /more.')
+
     # Get n and previous query data
     n = context.user_data['n']
     results = pd.read_json(context.user_data.get("query", None))
@@ -90,9 +93,12 @@ def result_to_string(result, n_from=0, n_to=5):
     :param n_to: Last row to show + 1
     :return: Return a string of the table
     """
-    result_str = result[['Name', 'Size', 'Seeders']][n_from:n_to].to_string(justify='center', max_colwidth=30)
-    result_str = '```' + result_str + '```'
-    return result_str
+    if len(result[n_from:n_to]):
+        result_str = result[['Name', 'Size', 'Seeders']][n_from:n_to].to_string(justify='center', max_colwidth=30)
+        result_str = '```' + result_str + '```'
+        return result_str
+    else:
+        return "There are no more results."
 
 
 def download(update, context):
@@ -100,6 +106,10 @@ def download(update, context):
     Download torrent with idx from previous piratesearch. If piratesearch was not called before, a message is shown.
     If a download is started the bot indicates the start with the name of the torrent.
     """
+    if not context.args:
+        update.message.reply_text('Please provide an index for the torrent to download')
+        return
+
     # Read idx from arguments
     idx = context.args[0]
 
@@ -116,6 +126,8 @@ def download(update, context):
 
     except ValueError:
         update.message.reply_text('Please use /piratesearch before running the /download command!')
+    except KeyError:
+        update.message.reply_text('ID was not found. Please try again.')
 
 
 def get_torrent_client():
