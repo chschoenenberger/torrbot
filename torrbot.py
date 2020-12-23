@@ -1,4 +1,3 @@
-# TODO Default n for downloads if first argument is not numeric
 # TODO Possibility to cancel download
 
 import yaml
@@ -94,15 +93,59 @@ def download(update, context):
         update.message.reply_text('Please use /piratesearch before running the /download command!')
 
 
+def get_torrent_client():
+    return Client(host=host, port=port, username=username, password=password)
+
+
 def send_to_transmission(link):
     """Sends a link to the transmission rpc client adding it to the downloads."""
-    c = Client(host=host, port=port, username=username, password=password)
+    c = get_torrent_client()
     c.add_torrent(link)
 
 
-def cancel_torrent():
-    # TODO
-    pass
+def list_torrents(update, context):
+    """Usage: /listtorrents"""
+    torrents = get_torrent_client().get_torrents()
+    if torrents:
+        torrents_pd = pd.DataFrame(list(zip(
+            [torrent.id for torrent in torrents],
+            [torrent.name for torrent in torrents],
+            [torrent.progress for torrent in torrents],
+        )), columns=['id', 'Name', 'Progress'])
+        torrents_str = torrents_pd.to_string(index=False, justify='center', max_colwidth=30)
+        torrents_str = '```' + torrents_str + '```'
+        context.bot.send_message(chat_id=update.effective_chat.id, text=torrents_str, parse_mode=ParseMode.MARKDOWN)
+    else:
+        update.message.reply_text('No torrents downloading...')
+
+
+def delete_all_torrents(update, context):
+    """Usage: /deletealltorrents"""
+    c = get_torrent_client()
+    torrent_ids = [torrent.id for torrent in c.get_torrents()]
+    torrent_names = [torrent.name for torrent in c.get_torrents()]
+    if torrent_ids:
+        c.remove_torrent(torrent_ids, delete_data=True)
+        update.message.reply_text(f'Removed torrent {torrent_names}')
+    else:
+        update.message.reply_text('No torrents downloading...')
+
+
+def delete_torrent(update, context):
+    """Usage: /deletetorrent id"""
+    if not context.args:
+        update.message.reply_text('Please provide a torrent id using /listtorrents')
+        return
+
+    id_arg = int(context.args[0])
+    c = get_torrent_client()
+    torrent_ids = [torrent.id for torrent in c.get_torrents()]
+    if id_arg in torrent_ids:
+        name = c.get_torrent(id_arg).name
+        c.remove_torrent(id_arg, delete_data=True)
+        update.message.reply_text(f'Removed torrents {name}')
+    else:
+        update.message.reply_text(f'Torrent with id {id_arg} not found.')
 
 
 def main():
@@ -117,6 +160,9 @@ def main():
     dp.add_handler(CommandHandler('piratesearch', pirate_search))
     dp.add_handler(CommandHandler('download', download))
     dp.add_handler(CommandHandler('more', more))
+    dp.add_handler(CommandHandler('listtorrents', list_torrents))
+    dp.add_handler(CommandHandler('deletealltorrents', delete_all_torrents))
+    dp.add_handler(CommandHandler('deletetorrent', delete_torrent))
 
     # Start the Bot
     updater.start_polling()
