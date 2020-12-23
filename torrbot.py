@@ -37,9 +37,15 @@ def help_command(update: Update, context: CallbackContext) -> None:
 
 
 def pirate_search(update, context):
-    """Usage /piratesearch n query"""
+    """Usage /piratesearch n query
+    Show first n results for query on Piratebay. Note that n is limited to 30, as only the first page is scraped.
+    If no n is provided 10 rows are shown by default.
+    """
+    if not context.args:
+        update.message.reply_text('Please provide a query')
+        return
 
-    # If first argument is a number use it as number of rows to return. Otherwise return 5 rows.
+    # If first argument is a number use it as number of rows to return. Otherwise return 10 rows.
     if context.args[0].isnumeric():
         context.user_data['n'] = int(context.args[0])
         text = ' '.join(context.args[1:])
@@ -52,7 +58,6 @@ def pirate_search(update, context):
     results = search_piratebay(text)
     if len(results):
         context.user_data['query'] = results.to_json()
-
         results_str = result_to_string(results, n_to=n)
         context.bot.send_message(chat_id=update.effective_chat.id, text=results_str, parse_mode=ParseMode.MARKDOWN)
     else:
@@ -60,14 +65,15 @@ def pirate_search(update, context):
 
 
 def more(update, context):
-    """Usage: /more"""
+    """Usage: /more
+    Show 5 more results for previous piratesearch.
+    """
+    # Get n and previous query data
     n = context.user_data['n']
     results = pd.read_json(context.user_data.get("query", None))
 
-    if len(results) < n + 5:
-        n_to = len(results)
-    else:
-        n_to = n + 5
+    # Show 5 next rows and increment n
+    n_to = n + 5
     results_str = result_to_string(results, n_from=n, n_to=n_to)
 
     context.bot.send_message(chat_id=update.effective_chat.id, text=results_str, parse_mode=ParseMode.MARKDOWN)
@@ -75,20 +81,34 @@ def more(update, context):
 
 
 def result_to_string(result, n_from=0, n_to=5):
+    """
+    Convert a pandas dataframe containing name, size, link, and seeders to a readable markdown table that can
+    be printed in a readable form.
+
+    :param result: The query results in form of a pandas dataframe
+    :param n_from: First row to show
+    :param n_to: Last row to show + 1
+    :return: Return a string of the table
+    """
     result_str = result[['Name', 'Size', 'Seeders']][n_from:n_to].to_string(justify='center', max_colwidth=30)
     result_str = '```' + result_str + '```'
     return result_str
 
 
 def download(update, context):
-    """Usage: /download idx"""
+    """Usage: /download idx
+    Download torrent with idx from previous piratesearch. If piratesearch was not called before, a message is shown.
+    If a download is started the bot indicates the start with the name of the torrent.
+    """
+    # Read idx from arguments
     idx = context.args[0]
 
-    # Load value
     try:
+        # Get query results
         query_df = pd.read_json(context.user_data.get("query", None))
 
         if query_df is not None:
+            # Send link of selected torrent to transmission and return the name
             link = query_df.loc[int(idx), 'Link']
             send_to_transmission(link)
             name = query_df.loc[int(idx), 'Name']
@@ -99,19 +119,31 @@ def download(update, context):
 
 
 def get_torrent_client():
+    """
+    Create a transmission client from the config file.
+    :return: The transmission client
+    """
     return Client(host=host, port=port, username=username, password=password)
 
 
 def send_to_transmission(link):
-    """Sends a link to the transmission rpc client adding it to the downloads."""
+    """
+    Sends a link to the transmission rpc client adding it to the downloads.
+
+    :param link: A magnet link in string form
+    :return: None
+    """
     c = get_torrent_client()
     c.add_torrent(link)
 
 
 def list_torrents(update, context):
-    """Usage: /listtorrents"""
+    """Usage: /listtorrents
+    List all torrents in Transmission
+    """
     torrents = get_torrent_client().get_torrents()
     if torrents:
+        # For each torrent get id, name and progress. Convert the dataframe to a readable format and return it.
         torrents_pd = pd.DataFrame(list(zip(
             [torrent.id for torrent in torrents],
             [torrent.name for torrent in torrents],
@@ -125,27 +157,35 @@ def list_torrents(update, context):
 
 
 def delete_all_torrents(update, context):
-    """Usage: /deletealltorrents"""
+    """Usage: /deletealltorrents
+    Delete all torrents in Transmission
+    """
+    # Get ids and names for all torrents
     c = get_torrent_client()
     torrent_ids = [torrent.id for torrent in c.get_torrents()]
     torrent_names = [torrent.name for torrent in c.get_torrents()]
+
     if torrent_ids:
+        # Check if there are torrents and remove all torrents if yes
         c.remove_torrent(torrent_ids, delete_data=True)
-        update.message.reply_text(f'Removed torrent {torrent_names}')
+        update.message.reply_text(f'Removed torrents {torrent_names}')
     else:
         update.message.reply_text('No torrents downloading...')
 
 
 def delete_torrent(update, context):
-    """Usage: /deletetorrent id"""
+    """Usage: /deletetorrent idx
+    Delete torrent with idx from previous listtorrent
+    """
     if not context.args:
-        update.message.reply_text('Please provide a torrent id using /listtorrents')
+        update.message.reply_text('Please provide a torrent id from /listtorrents')
         return
 
     id_arg = int(context.args[0])
     c = get_torrent_client()
     torrent_ids = [torrent.id for torrent in c.get_torrents()]
     if id_arg in torrent_ids:
+        # Check if the provided id is in the torrents and remove it if yes
         name = c.get_torrent(id_arg).name
         c.remove_torrent(id_arg, delete_data=True)
         update.message.reply_text(f'Removed torrent {name}')
