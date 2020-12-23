@@ -11,8 +11,6 @@ python-telegram-bot = "*"
 beautifulsoup4 = "*"
 requests = "*"
 pandas = "*"
-tabulate = "*"
-uuid = "*"
 transmission-rpc = "*"
 
 [requires]
