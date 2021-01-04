@@ -1,4 +1,3 @@
-import yaml
 import logging
 import pandas as pd
 from transmission_rpc import Client
@@ -7,15 +6,10 @@ from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 from scraper import search_piratebay
+from config_loader import load_config
 
 # Load config file
-with open('config.yaml') as file:
-    config = yaml.load(file, Loader=yaml.FullLoader)
-    token = config['token']
-    username = config['username']
-    password = config['password']
-    host = config['host']
-    port = config['port']
+token, username, password, host, port = load_config()
 
 # Enable logging
 logging.basicConfig(

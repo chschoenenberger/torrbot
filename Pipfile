@@ -11,6 +11,7 @@ pyyaml = "*"
 python-telegram-bot = "*"
 beautifulsoup4 = "*"
 transmission-rpc = "*"
+getpass = "*"
 
 [requires]
 python_version = "3.7"
