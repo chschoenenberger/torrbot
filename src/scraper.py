@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 
+
 def search_piratebay(query):
     response = requests.get(f"https://piratebay.party/search/{query}/1/99/200")
     soup = BeautifulSoup(response.text, "html.parser")
