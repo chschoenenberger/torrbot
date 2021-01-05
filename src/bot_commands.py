@@ -5,6 +5,10 @@ from telegram import Update, ParseMode
 from telegram.ext import CallbackContext
 
 from scraper import search_piratebay
+from config_loader import load_config
+
+# Load config file
+token, username, password, host, port = load_config()
 
 
 def help_command(update: Update, context: CallbackContext) -> None:

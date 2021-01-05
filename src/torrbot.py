@@ -1,11 +1,6 @@
 import logging
 from telegram.ext import Updater, CommandHandler
-
-from config_loader import load_config
 from bot_commands import *
-
-# Load config file
-token, username, password, host, port = load_config()
 
 # Enable logging
 logging.basicConfig(
