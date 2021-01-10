@@ -27,3 +27,16 @@ This is an example to show how the bot works:
 4. Type `/listtorrents` to check if the torrent was properly added.
 5. Type `/deletetorrent 31` to delete the torrent with index 31. The index is shown by 
 /listtorrents.
+
+## Torrent Complete Script
+The torrbot_completedNotification.sh script sends a message to your telegram when a 
+torrent is completed. To use the it there are several steps required.
+
+1. Fill in the bots token and the chat ID to which the message will be sent.
+2. Stop the transmission torrent by typing `sudo service transmission-daemon stop`
+3. Allow the execution of the script `sudo chmod +rx torrbot_completedNotification.sh`
+4. Open the transmission-daemon settings file by `sudo nano /etc/transmission-daemon/settings.json`
+and change the following:<br>
+`"script-torrent-done-enabled": true,`<br>
+`"script-torrent-done-filename": "/path/to/torrbot_completedNotification.sh",`
+5. Restart the transmission daemon with `sudo service transmission-daemon start`
