@@ -13,6 +13,7 @@ def load_config():
             password = config['password']
             host = config['host']
             port = config['port']
+            chatid = config['chatid']
 
     else:
         token = input('Please enter the Telegram Bot token:')
@@ -20,6 +21,7 @@ def load_config():
         password = getpass('Please enter the transmission password:')
         host = input('Please enter the transmission host:')
         port = input('Please enter the transmission port:')
+        chatid = input('Please enter the chatid:')
 
         with open(config_path, "w+") as file:
             yaml.dump({
@@ -27,7 +29,8 @@ def load_config():
                 'username': username,
                 'password': password,
                 'host': host,
-                'port': port
+                'port': port,
+                'chatid': chatid
             }, file)
 
-    return token, username, password, host, port
+    return token, username, password, host, port, chatid

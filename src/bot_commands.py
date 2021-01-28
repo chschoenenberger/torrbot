@@ -8,7 +8,7 @@ from scraper import search_piratebay
 from config_loader import load_config
 
 # Load config file
-token, username, password, host, port = load_config()
+token, username, password, host, port, chatid = load_config()
 
 
 def help_command(update: Update, context: CallbackContext) -> None:
@@ -28,6 +28,9 @@ def pirate_search(update, context):
     Show first n results for query on Piratebay. Note that n is limited to 30, as only the first page is scraped.
     If no n is provided 10 rows are shown by default.
     """
+    if update.effective_chat.id != chatid:
+        return
+
     if not context.args:
         update.message.reply_text('Please provide a query')
         return
@@ -55,6 +58,9 @@ def more(update, context):
     """Usage: /more
     Show 5 more results for previous piratesearch.
     """
+    if update.effective_chat.id != chatid:
+        return
+
     if not context.user_data.get('n', False):
         update.message.reply_text('Please run /piratesearch with a query before running /more.')
 
@@ -93,6 +99,9 @@ def download(update, context):
     Download torrent with idx from previous piratesearch. If piratesearch was not called before, a message is shown.
     If a download is started the bot indicates the start with the name of the torrent.
     """
+    if update.effective_chat.id != chatid:
+        return
+
     if not context.args:
         update.message.reply_text('Please provide an index for the torrent to download')
         return
@@ -140,6 +149,9 @@ def list_torrents(update, context):
     """Usage: /listtorrents
     List all torrents in Transmission
     """
+    if update.effective_chat.id != chatid:
+        return
+
     torrents = get_torrent_client().get_torrents()
     if torrents:
         # For each torrent get id, name and progress. Convert the dataframe to a readable format and return it.
@@ -159,6 +171,9 @@ def delete_all_torrents(update, context):
     """Usage: /deletealltorrents
     Delete all torrents in Transmission
     """
+    if update.effective_chat.id != chatid:
+        return
+
     # Get ids and names for all torrents
     c = get_torrent_client()
     torrent_ids = [torrent.id for torrent in c.get_torrents()]
@@ -176,6 +191,9 @@ def delete_torrent(update, context):
     """Usage: /deletetorrent idx
     Delete torrent with idx from previous listtorrent
     """
+    if update.effective_chat.id != chatid:
+        return
+
     if not context.args:
         update.message.reply_text('Please provide a torrent id from /listtorrents')
         return
