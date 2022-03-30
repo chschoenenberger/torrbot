@@ -2,11 +2,11 @@
 Telegram bot that scrapes Piratebay and can add torrents to Transmission
 
 ## Setup
-Run `poetry install` to install all dependencies. Fill in Telegram bot token, transmission
+Create virtual environment and activate it. Run `pip install -r requirements.txt` to install all dependencies. Fill in Telegram bot token, transmission
 username & password, as well as host and port in config_example.yaml and rename it to
 config.yaml.
 
-Then run torrbot.py to start up the bot using `poetry run python torrbot.py`.
+Then run torrbot.py to start up the bot using `python torrbot.py`.
 
 ## Bot commands
 The bot knows the following commands:
